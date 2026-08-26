@@ -10,7 +10,7 @@ uint8_t random_byte(){
 void init_chip8(Chip8* chip){
     *chip = (Chip8){0};
     chip->pc = 0x200;
-    srand(time(NULL));;
+    srand(time(NULL));
 }
 void load_mem(char *file, Chip8 *chip){
     FILE *f = fopen(file,"rb");
@@ -173,7 +173,7 @@ int emulate(Chip8 *chip){
           printf(".");
         }
         else{
-          printf("#");
+          printf("&");
         }
       }
       printf("\n");
