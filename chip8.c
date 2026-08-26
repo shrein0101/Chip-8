@@ -3,7 +3,7 @@
 #include<string.h>
 #include<time.h>
 #include"chip8.h"
-
+#define FONT_START 0x50
 uint8_t random_byte(){
   return rand()%256;
 }
@@ -144,8 +144,26 @@ int emulate(Chip8 *chip){
       case 0x1E:
         chip->I += chip->V[X];
         break;
-      
-    }
+      case 0x33:
+        chip->memory[chip->I] = chip->V[X] /100;
+        chip->memory[chip->I + 1] = (chip->V[X] /10) % 10;
+        chip->memory[chip->I + 2] = chip->V[X] % 10;
+        break;
+      case 0x55:
+        for(int i = 0; i <= X; i++){
+          chip->memory[chip->I + i] = chip->V[i]; 
+        }
+        break;
+      case 0x65:
+        for(int i = 0; i <= X; i++){
+          chip->V[i] = chip->memory[chip->I + i]; 
+        }
+        break;
+      case 0x29:
+        chip->I = FONT_START + chip->V[X]*5;
+        break;
+      }
+      break;
   case 0xD:
     chip->V[0xF] = 0;
     for (int i = 0; i < N; i++){
