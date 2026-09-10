@@ -45,45 +45,6 @@ int emulate(Chip8 *chip){
   uint16_t NNN = op & 0x0FFF;
 
   switch (instruction){
-  case 0x6:
-    chip->V[X] = NN;
-    break;
-  case 0x3:
-    if (chip->V[X] == NN)
-      chip->pc += 2;
-    break;
-  case 0x1:
-    chip->pc = NNN;
-    break;
-  case 0x7:
-    chip->V[X] += NN;
-    break;
-  case 0xA:
-    chip->I = NNN;
-    break;
-  case 0x2:
-    chip->stack[chip->sp] = chip->pc;
-    chip->sp++;
-    chip->pc = NNN;
-    break;
-  case 0x4:
-    if (chip->V[X] != NN)
-      chip->pc += 2;
-    break;
-  case 0x5:
-    if (N == 0 && chip->V[X] == chip->V[Y])
-      chip->pc += 2;
-    break;
-  case 0x9:
-    if (chip->V[X] != chip->V[Y] && N == 0)
-      chip->pc += 2;
-    break;
-  case 0xB:
-    chip->pc = NNN + chip->V[0];
-    break;
-  case 0xC:
-    chip->V[X] = random_byte() & NN;
-    break;
   case 0x0:
     if (op == 0x00EE){
       chip->sp--;
@@ -93,6 +54,40 @@ int emulate(Chip8 *chip){
       memset(chip->display, 0, sizeof(chip->display));
     }
     break;
+
+  case 0x1:
+    chip->pc = NNN;
+    break;
+
+  case 0x2:
+    chip->stack[chip->sp] = chip->pc;
+    chip->sp++;
+    chip->pc = NNN;
+    break;  
+
+  case 0x3:
+    if (chip->V[X] == NN)
+      chip->pc += 2;
+    break;
+
+  case 0x4:
+    if (chip->V[X] != NN)
+      chip->pc += 2;
+    break;
+
+  case 0x5:
+    if (N == 0 && chip->V[X] == chip->V[Y])
+      chip->pc += 2;
+    break;
+
+  case 0x6:
+    chip->V[X] = NN;
+    break;
+
+  case 0x7:
+    chip->V[X] += NN;
+    break;
+  
   case 0x8:
     switch (N){
     case 0:
@@ -130,6 +125,59 @@ int emulate(Chip8 *chip){
       break;
     }
     break;
+    
+  case 0x9:
+    if (chip->V[X] != chip->V[Y] && N == 0)
+      chip->pc += 2;
+    break;
+
+  case 0xA:
+    chip->I = NNN;
+    break;
+
+  case 0xB:
+    chip->pc = NNN + chip->V[0];
+    break;
+
+  case 0xC:
+    chip->V[X] = random_byte() & NN;
+    break;  
+  
+  case 0xD:
+    chip->V[0xF] = 0;
+    for (int i = 0; i < N; i++){
+      uint8_t sprite = chip->memory[chip->I + i];
+      for (int bit = 0; bit < 8; bit++){
+
+        int y = chip->V[Y] + i;
+        int x = chip->V[X] + bit;
+
+        if (x > 63)
+          x %= 64;
+        if (y > 31)
+          y %= 32;
+        uint8_t temp = chip->display[y][x];
+        uint8_t pixel = (sprite >> (7 - bit)) & 1;
+
+        if (pixel && temp)
+          chip->V[0xF] = 1;
+        chip->display[y][x] ^= pixel;
+      }
+    }
+    for (int y = 0; y < 32; y++){
+      for (int x = 0; x < 64; x++){
+        if (chip->display[y][x] == 0){
+          printf(".");
+        }
+        else{
+          printf("&");
+        }
+      }
+      printf("\n");
+    }
+    printf("\n");
+    break;
+  
   case 0xF:
     switch(NN){
       case 0x07:
@@ -164,39 +212,7 @@ int emulate(Chip8 *chip){
         break;
       }
       break;
-  case 0xD:
-    chip->V[0xF] = 0;
-    for (int i = 0; i < N; i++){
-      uint8_t sprite = chip->memory[chip->I + i];
-      for (int bit = 0; bit < 8; bit++){
-
-        int y = chip->V[Y] + i;
-        int x = chip->V[X] + bit;
-
-        if (x > 63)
-          x %= 64;
-        if (y > 31)
-          y %= 32;
-        uint8_t temp = chip->display[y][x];
-        uint8_t pixel = (sprite >> (7 - bit)) & 1;
-
-        if (pixel && temp)
-          chip->V[0xF] = 1;
-        chip->display[y][x] ^= pixel;
-      }
-    }
-    for (int y = 0; y < 32; y++){
-      for (int x = 0; x < 64; x++){
-        if (chip->display[y][x] == 0){
-          printf(".");
-        }
-        else{
-          printf("&");
-        }
-      }
-      printf("\n");
-    }
-    break;
+  
   }
   return running;
 }
