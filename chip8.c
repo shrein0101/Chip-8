@@ -1,18 +1,41 @@
 #include<stdio.h>
+#include<unistd.h>
+#include<termios.h>
 #include<stdlib.h>
 #include<string.h>
 #include<time.h>
+#include<SDL2/SDL.h>
 #include"chip8.h"
 #define FONT_START 0x50
-uint8_t random_byte(){
-  return rand()%256;
-}
+
+unsigned char fontset[80] = {
+    0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+    0x20, 0x60, 0x20, 0x20, 0x70, // 1
+    0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+    0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+    0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+    0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+    0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+    0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+    0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+    0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+    0xF0, 0x90, 0xF0, 0x90, 0x90, // A 
+    0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+    0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+    0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+    0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+    0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+};
+
+
 void init_chip8(Chip8* chip){
     *chip = (Chip8){0};
+    memcpy(chip->memory + FONT_START,fontset,sizeof(fontset));
     chip->pc = 0x200;
     srand(time(NULL));
 }
-void load_mem(char *file, Chip8 *chip){
+
+void load_mem(const char *file, Chip8 *chip){
     FILE *f = fopen(file,"rb");
     if(f==NULL){
         printf("ERROR: The file could not be open\n");
@@ -30,6 +53,34 @@ void load_mem(char *file, Chip8 *chip){
     fread(chip->memory+0x200,1,size,f);
     fclose(f);
 }
+
+uint8_t random_byte(){
+  return rand()%256;
+}
+
+uint8_t keypress(char in){
+  switch(in){
+
+    case '1' : return 0x1;
+    case '2' : return 0x2;
+    case '3' : return 0x3;
+    case '4' : return 0xC;
+    case 'q' : return 0x4;
+    case 'w' : return 0x5;
+    case 'e' : return 0x6;
+    case 'r' : return 0xD;
+    case 'a' : return 0x7;
+    case 's' : return 0x8;
+    case 'd' : return 0x9;
+    case 'f' : return 0xE;
+    case 'z' : return 0xA;
+    case 'x' : return 0x0;
+    case 'c' : return 0xB;
+    case 'v' : return 0xF;
+    default : return 0xFF;
+  }
+}
+
 int emulate(Chip8 *chip){
   
   int running = chip->pc + 1 < chip->rom_end;
@@ -164,7 +215,7 @@ int emulate(Chip8 *chip){
         chip->display[y][x] ^= pixel;
       }
     }
-    for (int y = 0; y < 32; y++){
+    /*for (int y = 0; y < 32; y++){
       for (int x = 0; x < 64; x++){
         if (chip->display[y][x] == 0){
           printf(".");
@@ -174,10 +225,20 @@ int emulate(Chip8 *chip){
         }
       }
       printf("\n");
-    }
-    printf("\n");
+    }*/
     break;
-  
+
+  case 0xE:
+    switch(NN){
+      case 0x9E:
+        if(chip->keypad[chip->V[X]]) chip->pc += 2;
+        break;
+      case 0xA1:
+        if(!chip->keypad[chip->V[X]]) chip->pc += 2;
+        break; 
+    }
+    break;
+    
   case 0xF:
     switch(NN){
       case 0x07:
@@ -209,6 +270,11 @@ int emulate(Chip8 *chip){
         break;
       case 0x29:
         chip->I = FONT_START + chip->V[X]*5;
+        break;
+      case 0x0A:
+        char in;
+        scanf("%c",&in);
+        chip->V[X] = keypress(in);
         break;
       }
       break;
